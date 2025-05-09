@@ -11,12 +11,22 @@
   </section>
 </template>
 
-
 <script setup>
+import { useHead } from '#app'
+
+useHead({
+  script: [
+    { src: 'https://code.highcharts.com/highcharts.js' },
+    { src: 'https://code.highcharts.com/highcharts-3d.js' },
+    { src: 'https://code.highcharts.com/modules/variable-pie.js' },
+    { src: 'https://code.highcharts.com/modules/heatmap.js' },
+    { src: 'https://code.highcharts.com/modules/accessibility.js' }
+  ]
+})
+
 const { data: filesRaw } = await useAsyncData('files', () =>
   $fetch('http://127.0.0.1:8000/api/files/')
 )
 
 const files = computed(() => filesRaw.value || [])
 </script>
-

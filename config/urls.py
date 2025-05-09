@@ -16,11 +16,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from excelreader.views import upload_file, get_rows_by_file, get_uploaded_files
+from excelreader.views import upload_file, get_rows_by_file, get_uploaded_files, token_report_api
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('upload/', upload_file),
     path('api/files/', get_uploaded_files),
     path('api/files/<int:file_id>/rows/', get_rows_by_file), 
+    path('api/report/token', token_report_api),
 ]

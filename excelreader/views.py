@@ -73,3 +73,45 @@ def get_rows_by_file(request, file_id):
     rows = ExcelRow.objects.filter(file_id=file_id).order_by('row_number')
     serializer = ExcelRowSerializer(rows, many=True)
     return Response(serializer.data)
+
+## API visualization
+@api_view(['GET'])
+def token_report_api(request):
+    try:
+        # ✅ Tìm file theo tên (hoặc sau này có thể dùng file_id)
+        target_filename = '20250428084607-data.xlsx'
+        file_obj = UploadedFile.objects.filter(filename=target_filename).first()
+
+        if not file_obj:
+            return JsonResponse({'error': 'Không tìm thấy file trong DB'}, status=404)
+
+        # ✅ Lấy tất cả dòng thuộc file đó
+        rows = ExcelRow.objects.filter(file=file_obj)
+
+        if not rows.exists():
+            return JsonResponse({'error': 'Không có dòng dữ liệu cho file này'}, status=404)
+
+        # ✅ Tạo DataFrame từ JSONField "data"
+        df = pd.DataFrame([row.data for row in rows])
+
+        # ✅ Xử lý thống kê như cũ
+        df["Thời giantạo"] = pd.to_datetime(df["Thời giantạo"])
+
+        browsers = df["Trình duyệt"].value_counts().reset_index().values.tolist()
+        platforms = df["Nền tảng"].value_counts().reset_index().values.tolist()
+        regions = df["Region"].value_counts().reset_index().values.tolist()
+
+        by_day = df["Thời giantạo"].dt.date.value_counts().sort_index().reset_index()
+        by_day.columns = ["date", "count"]
+        created_per_day = by_day.values.tolist()
+
+        return Response({
+            'browsers': browsers,
+            'platforms': platforms,
+            'regions': regions,
+            'created_per_day': created_per_day
+        })
+
+    except Exception as e:
+        traceback.print_exc()
+        return JsonResponse({'error': str(e)}, status=500)
