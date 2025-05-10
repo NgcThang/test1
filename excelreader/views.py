@@ -115,3 +115,15 @@ def token_report_api(request):
     except Exception as e:
         traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
+    
+## API Delete
+@api_view(['DELETE'])
+def delete_multiple_files(request):
+    ids = request.data.get('ids', [])
+    if not ids:
+        return Response({'error': 'Danh sách ID rỗng.'}, status=400)
+
+    files = UploadedFile.objects.filter(id__in=ids)
+    deleted = files.count()
+    files.delete()
+    return Response({'message': f'Đã xoá {deleted} file.'})
