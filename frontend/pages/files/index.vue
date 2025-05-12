@@ -11,9 +11,6 @@
           >
             {{ selectionMode ? 'Huỷ chọn' : '🗑️ Xoá dữ liệu' }}
           </button>
-          <NuxtLink to="/files/report" class="button is-link is-light">
-            🔍 Xem báo cáo
-          </NuxtLink>
         </div>
       </div>
 
@@ -31,6 +28,7 @@
             <th>ID</th>
             <th>Tên file</th>
             <th>Thời gian upload</th>
+            <th>Hành động</th>
           </tr>
         </thead>
         <tbody>
@@ -43,6 +41,11 @@
               <NuxtLink :to="`/files/${file.id}`">{{ file.filename }}</NuxtLink>
             </td>
             <td>{{ formatDate(file.uploaded_at) }}</td>
+            <td>
+              <NuxtLink :to="`/files/report?file_id=${file.id}`" class="button is-link is-light is-small">
+                🔍 Xem báo cáo
+              </NuxtLink>
+            </td>
           </tr>
         </tbody>
       </table>
