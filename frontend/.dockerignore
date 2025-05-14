@@ -1,0 +1,11 @@
+# NodeJS build cache
+node_modules/
+.npm/
+.output/
+.nuxt/
+dist/
+
+# IDE và hệ thống
+.DS_Store
+.vscode/
+.env

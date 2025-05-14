@@ -42,21 +42,25 @@ definePageMeta({
   key: (route) => route.fullPath
 })
 
+// Lấy base URL từ cấu hình runtime (tốt cho Docker)
+const config = useRuntimeConfig()
+const apiBase = config.public.apiBase
+
 // Dùng useAsyncData để hỗ trợ SSR + CSR
 const { data: rowsRaw, refresh } = await useAsyncData(
-  `rows-${route.params.id}`,  // key
-  () => $fetch(`http://127.0.0.1:8000/api/files/${route.params.id}/rows/`)
+  `rows-${route.params.id}`, // key
+  () => $fetch(`${apiBase}/api/files/${route.params.id}/rows/`)
 )
 
-// Nếu route.params.id thay đổi (chuyển từ file khác sang), tự fetch lại
+// Nếu route.params.id thay đổi → tự refresh
 watch(() => route.params.id, () => {
   refresh()
 })
 
-// rows có thể null nên cần computed
+// Xử lý dữ liệu rows
 const rows = computed(() => rowsRaw.value || [])
 
-// Lấy danh sách các cột duy nhất
+// Lấy danh sách cột động từ dữ liệu
 const columns = computed(() => {
   const allKeys = rows.value.flatMap(row => Object.keys(row.data || {}))
   return [...new Set(allKeys)]

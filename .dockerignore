@@ -1,0 +1,15 @@
+# Thư mục và file không cần thiết cho image
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.log
+*.env
+venv/
+.mypy_cache/
+.pytest_cache/
+.idea/
+.vscode/
+*.db
+
+# NodeJS frontend (nếu copy toàn bộ)
+frontend/

@@ -42,25 +42,45 @@
             </td>
             <td>{{ formatDate(file.uploaded_at) }}</td>
             <td>
-              <NuxtLink :to="`/files/report?file_id=${file.id}`" class="button is-link is-light is-small">
+              <NuxtLink
+                :to="`/files/report?file_id=${file.id}`"
+                class="button is-link is-light is-small"
+              >
                 🔍 Xem báo cáo
               </NuxtLink>
             </td>
           </tr>
         </tbody>
       </table>
+
+      <!-- Nếu không có file -->
       <p v-else>Không có file nào được upload.</p>
     </div>
   </section>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useFetch, useRuntimeConfig } from '#app'
 
-const { data: files, refresh } = await useFetch('http://127.0.0.1:8000/api/files/')
+// 1) Grab your public API base from runtimeConfig
+const config      = useRuntimeConfig()
+const apiBaseUrl  = config.public.apiBase || 'http://localhost:8000'
 
-const selectionMode = ref(false)
-const selectedFileIds = ref([])
+// 2) Fetch the file list using an absolute URL
+const { data: filesRaw, refresh } = await useFetch(
+  `${apiBaseUrl}/api/files/`,
+  { method: 'GET' }
+)
+
+// 3) Normalize to an array
+const files = computed(() =>
+  Array.isArray(filesRaw.value) ? filesRaw.value : []
+)
+
+// 4) Selection / delete logic
+const selectionMode    = ref(false)
+const selectedFileIds  = ref([])
 
 const toggleSelectionMode = () => {
   selectionMode.value = !selectionMode.value
@@ -71,24 +91,23 @@ const deleteSelectedFiles = async () => {
   if (!confirm('Bạn có chắc muốn xoá các file đã chọn?')) return
 
   try {
-    await $fetch('http://127.0.0.1:8000/api/delete-files/', {
+    await $fetch(`${apiBaseUrl}/api/delete-files/`, {
       method: 'DELETE',
-      body: {
-        ids: selectedFileIds.value
-      }
+      body: { ids: selectedFileIds.value }
     })
     alert('Đã xoá thành công!')
     await refresh()
     selectedFileIds.value = []
     selectionMode.value = false
-  } catch (error) {
-    console.error(error)
+  } catch (err) {
+    console.error(err)
     alert('Lỗi khi xoá file.')
   }
 }
 
+// 5) Date formatter helper
 function formatDate(dateString) {
-  const date = new Date(dateString)
-  return date.toLocaleString('vi-VN')
+  return new Date(dateString).toLocaleString('vi-VN')
 }
 </script>
+
