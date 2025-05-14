@@ -17,19 +17,13 @@
         <h2 class="title">🍊 Pie Chart Variants</h2>
         <div id="chart-basic-pie" class="chart-container"></div>
         <div id="chart-donut-pie" class="chart-container"></div>
-        <div id="chart-3d-pie" class="chart-container"></div>
         <div id="chart-semi-pie" class="chart-container"></div>
-        <div id="chart-variable-pie" class="chart-container"></div>
 
         <!-- Column / Bar Charts -->
         <h2 class="title">🏋️ Column / Bar Charts</h2>
         <div id="chart-column-basic" class="chart-container"></div>
         <div id="chart-column-stacked" class="chart-container"></div>
         <div id="chart-bar-horizontal" class="chart-container"></div>
-
-        <!-- Time Heatmap -->
-        <h2 class="title">📊 Time Heatmap</h2>
-        <div id="chart-heatmap" class="chart-container" style="height:500px;"></div>
       </div>
     </div>
   </section>
@@ -126,12 +120,6 @@ onMounted(async () => {
       series: [{ data: data.platforms }]
     })
 
-    await createChart('chart-3d-pie', {
-      chart: { type: 'pie', options3d: { enabled: true, alpha: 45 } },
-      title: { text: '🍕 3D Pie' },
-      plotOptions: { pie: { depth: 45 } },
-      series: [{ data: data.regions.map(([n,y]) => ({ name: n, y })) }]
-    })
 
     await createChart('chart-semi-pie', {
       chart: { type: 'pie' },
@@ -147,17 +135,7 @@ onMounted(async () => {
       series: [{ data: data.regions.map(([n,y]) => ({ name: n, y })) }]
     })
 
-    await createChart('chart-variable-pie', {
-      chart: { type: 'variablepie' },
-      title: { text: '📊 Variable Pie' },
-      series: [{
-        name: 'Token',
-        minPointSize: 10,
-        innerSize: '20%',
-        zMin: 0,
-        data: data.browsers.map(([n,y]) => ({ name: n, y, z: y }))
-      }]
-    })
+  
 
     // Column / Bar Charts
     await createChart('chart-column-basic', {
@@ -188,21 +166,7 @@ onMounted(async () => {
       series: [{ data: data.regions.slice(0,10) }]
     })
 
-    // Time Heatmap
-    const heatmapData = []
-    for (let day = 0; day < 7; day++) {
-      for (let hour = 0; hour < 24; hour++) {
-        heatmapData.push([hour, day, Math.floor(Math.random() * 20)])
-      }
-    }
-    await createChart('chart-heatmap', {
-      chart: { type: 'heatmap' },
-      title: { text: '🗓 Heatmap – Giờ & Ngày (demo)' },
-      xAxis: { categories: [...Array(24).keys()].map(h => `${h}h`) },
-      yAxis: { categories: ['CN','T2','T3','T4','T5','T6','T7'], reversed: true },
-      colorAxis: { min: 0, maxColor: '#7cb5ec' },
-      series: [{ name: 'Usage', borderWidth: 1, data: heatmapData, dataLabels: { enabled: true, color: '#000' } }]
-    })
+
 
   } catch (err) {
     console.error('Chart error:', err)
