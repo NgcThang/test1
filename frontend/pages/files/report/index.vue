@@ -1,27 +1,28 @@
 <template>
   <section class="section">
     <div class="container">
+      <!-- Chỉ hiện loading cho đến khi data đã fetch xong và DOM chart đã được mount -->
       <div v-if="isLoading" class="has-text-centered my-6">
-        <p>Đang tải báo cáo...</p>
+        <p>Đang tải báo cáo…</p>
       </div>
 
       <div v-else>
         <!-- Original Reports -->
         <h2 class="title">📈 Báo cáo gốc ban đầu</h2>
-        <div id="chart-browser" class="chart-container"></div>
-        <div id="chart-platform" class="chart-container"></div>
-        <div id="chart-region" class="chart-container"></div>
-        <div id="chart-created" class="chart-container"></div>
+        <div id="chart-browser"   class="chart-container"></div>
+        <div id="chart-platform"  class="chart-container"></div>
+        <div id="chart-region"    class="chart-container"></div>
+        <div id="chart-created"   class="chart-container"></div>
 
         <!-- Pie Chart Variants -->
         <h2 class="title">🍊 Pie Chart Variants</h2>
-        <div id="chart-basic-pie" class="chart-container"></div>
-        <div id="chart-donut-pie" class="chart-container"></div>
-        <div id="chart-semi-pie" class="chart-container"></div>
+        <div id="chart-basic-pie"  class="chart-container"></div>
+        <div id="chart-donut-pie"  class="chart-container"></div>
+        <div id="chart-semi-pie"   class="chart-container"></div>
 
         <!-- Column / Bar Charts -->
         <h2 class="title">🏋️ Column / Bar Charts</h2>
-        <div id="chart-column-basic" class="chart-container"></div>
+        <div id="chart-column-basic"   class="chart-container"></div>
         <div id="chart-column-stacked" class="chart-container"></div>
         <div id="chart-bar-horizontal" class="chart-container"></div>
       </div>
@@ -30,60 +31,60 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useHead, useRoute, navigateTo, useRuntimeConfig } from '#app'
-
-// 1️⃣ Load Highcharts via CDN on this page only, in document order
-useHead({
-  script: [
-    { src: 'https://code.highcharts.com/highcharts.js',      defer: true },
-    { src: 'https://code.highcharts.com/highcharts-3d.js',    defer: true },
-    { src: 'https://code.highcharts.com/modules/variable-pie.js', defer: true },
-    { src: 'https://code.highcharts.com/modules/heatmap.js',     defer: true }
-  ]
-})
+import { ref, onMounted, nextTick } from 'vue'
+import { useRoute, navigateTo, useRuntimeConfig } from '#app'
 
 const isLoading = ref(true)
 const route     = useRoute()
 const { public: { apiBase } } = useRuntimeConfig()
 
-/**
- * Wait for Highcharts.chart to exist, then render.
+/** 
+ * Đảm bảo import Highcharts core duy nhất 1 lần,
+ * rồi vẽ chart vào container đã có sẵn.
  */
-async function createChart(containerId, options) {
-  while (!(window.Highcharts && typeof window.Highcharts.chart === 'function')) {
-    await new Promise(r => setTimeout(r, 50))
+async function drawChart(containerId, opts) {
+  if (!window.Highcharts) {
+    const HC = (await import('highcharts')).default
+    window.Highcharts = HC
   }
-  window.Highcharts.chart(containerId, options)
+  await nextTick()
+  window.Highcharts.chart(containerId, opts)
 }
 
 onMounted(async () => {
+  // Chỉ chạy client-side
   if (process.server) return
 
-  // 2️⃣ Guard for missing file_id
   const fileId = route.query.file_id
   if (!fileId) {
-    alert('Thiếu file_id trong URL (ví dụ: ?file_id=1). Quay về danh sách.')
+    alert('Thiếu file_id trong URL (ví dụ: ?file_id=1)')
     return navigateTo('/files')
   }
 
   try {
-    // 3️⃣ Fetch the pre-built report JSON
-    const res  = await fetch(`${apiBase}/api/report/token?file_id=${fileId}/rows`)
+    // 1️⃣ Fetch dữ liệu pre-built từ backend
+    const res  = await fetch(`${apiBase}/api/report/token?file_id=${fileId}`)
     const data = await res.json()
     if (!res.ok || data.error) {
       throw new Error(data.error || 'Lỗi không xác định từ server')
     }
 
-    // 4️⃣ Render every chart exactly as before
+    // 2️⃣ Tắt loading, cho DOM render các <div id="chart-..."> lên
+    isLoading.value = false
+    await nextTick()
 
-    await createChart('chart-browser', {
+    // 3️⃣ Bắt đầu vẽ từng chart, container đã chắc chắn tồn tại
+    await drawChart('chart-browser', {
       chart: { type: 'pie' },
       title: { text: '🥧 Trình duyệt phổ biến' },
-      series: [{ name: 'Count', colorByPoint: true, data: data.browsers.map(([n,y]) => ({ name: n, y })) }]
+      series: [{
+        name: 'Count',
+        colorByPoint: true,
+        data: data.browsers.map(([n,y]) => ({ name: n, y }))
+      }]
     })
 
-    await createChart('chart-platform', {
+    await drawChart('chart-platform', {
       chart: { type: 'column' },
       title: { text: '📊 Nền tảng sử dụng' },
       xAxis: { type: 'category' },
@@ -91,14 +92,13 @@ onMounted(async () => {
       series: [{ name: 'Platform', data: data.platforms }]
     })
 
-    await createChart('chart-region', {
-      chart: { type: 'pie', options3d: { enabled: true, alpha: 45 } },
-      title: { text: '🥧 Khu vực truy cập (3D)' },
-      plotOptions: { pie: { innerSize: 50, depth: 45 } },
+    await drawChart('chart-region', {
+      chart: { type: 'pie' },
+      title: { text: '🥧 Khu vực truy cập' },
       series: [{ name: 'Count', data: data.regions.map(([n,y]) => ({ name: n, y })) }]
     })
 
-    await createChart('chart-created', {
+    await drawChart('chart-created', {
       chart: { type: 'line' },
       title: { text: '📈 Token tạo theo ngày' },
       xAxis: { categories: data.created_per_day.map(([d]) => d) },
@@ -106,22 +106,20 @@ onMounted(async () => {
       series: [{ name: 'Tokens', data: data.created_per_day.map(([_,c]) => c) }]
     })
 
-    // Pie Variants
-    await createChart('chart-basic-pie', {
+    await drawChart('chart-basic-pie', {
       chart: { type: 'pie' },
       title: { text: '🥧 Basic Pie' },
       series: [{ data: data.browsers.map(([n,y]) => ({ name: n, y })) }]
     })
 
-    await createChart('chart-donut-pie', {
+    await drawChart('chart-donut-pie', {
       chart: { type: 'pie' },
       title: { text: '🍩 Donut Pie' },
       plotOptions: { pie: { innerSize: '50%' } },
       series: [{ data: data.platforms }]
     })
 
-
-    await createChart('chart-semi-pie', {
+    await drawChart('chart-semi-pie', {
       chart: { type: 'pie' },
       title: { text: '🥟 Semi-circle Pie' },
       plotOptions: {
@@ -135,10 +133,7 @@ onMounted(async () => {
       series: [{ data: data.regions.map(([n,y]) => ({ name: n, y })) }]
     })
 
-  
-
-    // Column / Bar Charts
-    await createChart('chart-column-basic', {
+    await drawChart('chart-column-basic', {
       chart: { type: 'column' },
       title: { text: '📦 Column Chart' },
       xAxis: { type: 'category' },
@@ -146,7 +141,7 @@ onMounted(async () => {
       series: [{ data: data.platforms }]
     })
 
-    await createChart('chart-column-stacked', {
+    await drawChart('chart-column-stacked', {
       chart: { type: 'column' },
       title: { text: '🧱 Stacked Column' },
       xAxis: { type: 'category' },
@@ -158,7 +153,7 @@ onMounted(async () => {
       ]
     })
 
-    await createChart('chart-bar-horizontal', {
+    await drawChart('chart-bar-horizontal', {
       chart: { type: 'bar' },
       title: { text: '📊 Bar Chart' },
       xAxis: { type: 'category' },
@@ -166,12 +161,10 @@ onMounted(async () => {
       series: [{ data: data.regions.slice(0,10) }]
     })
 
-
-
   } catch (err) {
     console.error('Chart error:', err)
     alert('Lỗi chart: ' + err.message)
-  } finally {
+    // nếu fetch hay chart lỗi, vẫn phải tắt loading để tránh kẹt giao diện
     isLoading.value = false
   }
 })
